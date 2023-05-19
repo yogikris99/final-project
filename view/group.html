@@ -1,0 +1,128 @@
+<div class="container-fluid">
+    <div class="row">
+        <h3>Data Group</h3>
+    </div>
+    <div class="row">
+        <p><button class="btn btn-primary add">Add</button></p>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered table-hover" id="group">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Nama</th>
+                                            <th>Deskripsi</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+        
+    </div>
+</div>
+<div class="modal inmodal fade" id="myModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" action="#" id="frmGroup">
+                    <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                            <h4 class="modal-title"></h4>
+                    </div>
+                    <div class="modal-body">
+                            <div class="ibox-content">
+                                <table class="table table-responsive table-hovered">
+                                        <tr>
+                                              <td>Nama Group</td>
+                                              <td>
+                                                  <input type="hidden" name="id" id="id" class="form-control">
+                                                  <input type="text" name="nama" id="nama" class="form-control">
+                                              </td>
+                                        </tr>
+                                        <tr>
+                                              <td>Deskripsi</td>
+                                              <td>
+                                                  <textarea name="deskripsi" id="deskripsi" class="form-control"></textarea>
+                                              </td>
+                                        </tr>
+                                </table>
+                        
+                            </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary save">Simpan</button> 
+                        <a href="#" class="btn btn-default" data-dismiss="modal">Batal</a>
+                    </div>
+                </form>
+            </div>
+    </div>
+</div>
+<script>
+    $(function(){
+        initData();
+        $('button.add').click(function(){
+           $('#myModal .modal-title').text('Tambah Group');
+               $('#nama').val('');
+               $('#deskripsi').val('');
+           $('#myModal').modal('show'); 
+        });
+        
+        $('button.save').click(function(){
+            var check = $('#id').val();
+            if(!check) {
+                $('#id').val(0);
+            } 
+            var param = $('form#frmGroup').serialize();
+            console.log('data ',param);
+            $.ajax({
+               type:'POST',
+               url:'service.php?page=group&action=save',
+               data:param,
+               success:function(resp){
+                   alert(resp);
+                   initData();
+               },
+               error:function(error){
+                console.log(error);
+                   alert('Koneksi gagal,');
+               }
+            });
+        });
+        $('#page-wrapper').off('click','button.edit');
+        $('#page-wrapper').on('click','button.edit',function(){
+           var id = $(this).data("id");
+           $.post('service.php?page=group&action=getData',{id:id},function(resp){
+               var respon = JSON.parse(resp);
+               $('#id').val(respon.id);
+               $('#nama').val(respon.nama);
+               $('#deskripsi').val(respon.deskripsi);
+               $('#myModal .modal-title').text('Edit Group')
+               $('#myModal').modal('show');
+           });
+        });
+        $('#page-wrapper').off('click','button.delete');
+        $('#page-wrapper').on('click','button.delete',function(){
+            var c = confirm('Anda Ingin Menghapus Data ini?');
+            var id = $(this).data('id');
+            if(c){
+                $.post('service.php?page=group&action=delete',{id:id},function(resp){
+                   alert(resp); 
+                   initData();
+                   $('#myModal').modal('hide');
+                });
+            }
+        });
+        
+    });
+    
+    function initData(){
+        $('table#group tbody tr').each(function(){$(this).remove()});
+       $.getJSON('service.php',{page:'group',action:'getData'},function(resp){
+           if(resp.length > 0){
+               for(var i=0;i<resp.length;i++){
+                   $('table#group tbody').append('<tr><td>'+(i+1)+'</td><td>'+resp[i].nama+'</td><td>'+resp[i].deskripsi+'</td><td><button class="btn btn-default edit" data-id="'+resp[i].id+'">Edit</button>&nbsp;<button class="btn btn-danger delete" data-id="'+resp[i].id+'">Delete</button></td></tr>');
+               }
+           }
+       });        
+    }
+</script>

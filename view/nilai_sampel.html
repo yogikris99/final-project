@@ -1,0 +1,180 @@
+<div class="container-fluid">
+    <div class="row">
+        <h3>Data Nilai Kost</h3>
+    </div>
+    <div class="row">
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover" id="nilai">
+                <thead></thead>
+                <tbody></tbody>
+                <tfoot></tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal inmodal fade" id="myModal2" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                    <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                            <h4 class="modal-title">Ubah Nilai Sampel</h4>
+                    </div>
+                    <div class="modal-body">
+                            <div class="ibox-content">
+                                <form method="post" action="#" id="frmNilai">
+                                    <table class="table table-responsive table-hovered" id="editNilai">
+                                        <thead>
+                                            <tr>
+                                                <td>Kriteria</td>
+                                                <td>Bobot</td>
+                                                <td>Nilai</td>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </form>
+                            </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary save">Simpan</button>
+                        <a href="#" class="btn btn-default" data-dismiss="modal">Batal</a>
+                    </div>
+            </div>
+    </div>
+</div>
+
+<script>
+    $(function(){
+        initData();
+        $('#page-wrapper').off('click','button.edit');
+
+        $('#page-wrapper').on('click','button.edit', function(){
+            var id = $(this).data('id');
+            $.ajax({
+                method: 'post',
+                url: 'service.php?page=nilai&action=getSampel',
+                async: false,
+                data: {sampel_id:id},
+                success: function(resp) {
+                    var elmDOM = $('#editNilai tbody');
+                    elmDOM.html('');
+                    var res = JSON.parse(resp);
+                    $('.modal-title').text('Ubah Nilai : '+res[0].nama);
+                    if(res.length > 0){
+                        for(var i=0; i<res.length; i++){
+                            elmDOM.append('<tr><td>'+ res[i].nama_kriteria +'<input type="hidden" name="kriteria_id" value="'+res[i].kriteria_id+'" /><input type="hidden" name="sampel_id" value="'+res[i].sampel_id+'" /></td><td>'+ res[i].bobot +'</td><td><input type="number" min="0" max="100" class="form-control" name="nilai" value="'+res[i].nilai+'" /></td></tr>')
+                        }
+                    }
+                }
+            });
+
+            $('#myModal2').modal('show');
+        });
+
+        $('button.save').on('click', function(){
+            var param = $('form#frmNilai').serialize();
+            var panjang_kriteria = $('#editNilai tbody').find('tr').size();
+            $('#editNilai tbody').find('tr').each(function(i){
+                var kriteria_id = $(this).find('input[name=kriteria_id]').val();
+                var sampel_id = $(this).find('input[name=sampel_id]').val();
+                var nilai = $(this).find('input[name=nilai]').val();
+                var data = 'kriteria_id=' + kriteria_id + '&sampel_id=' + sampel_id + '&nilai=' + nilai;
+                $.ajax({
+                   type:'POST',
+                   url:'service.php?page=nilai&action=save',
+                   data:data,
+                   success:function(resp){
+                        if(i+1 == panjang_kriteria) {
+                            alert('Data berhasil dirubah');
+                            initData()
+                            $('#myModal2').modal('hide');
+                        }
+                   },
+                   error:function(error){
+                    alert('Koneksi gagal');
+                   }
+                });
+                
+            });
+            
+        });
+
+    });
+    
+    function initData(){
+
+        $('table#nilai tbody tr').each(function(){$(this).remove()});
+        $('table#nilai thead tr').each(function(){$(this).remove()});
+        var kriteria = false;
+        var sampel = false;
+
+        $.ajax({
+            url: 'service.php',
+            dataType: 'json',
+            async: false,
+            data: {page:'kriteria',action:'getData'},
+            success: function(resp) {
+                kriteria = resp;
+            }
+        });
+
+        $.ajax({
+            url: 'service.php',
+            dataType: 'json',
+            async: false,
+            data: {page:'sampel',action:'getData'},
+            success: function(resp) {
+                sampel = resp;
+            }
+        });
+
+        if(kriteria && sampel) {
+            $('table#nilai thead').html('');
+            $('table#nilai tbody').html('');
+            $('table#nilai tfoot').html('');
+
+            var panjang_kriteria = kriteria.length;
+            var elm = '<tr><td>Nama</td>';
+            var elm2= '<tr><td>Bobot</td>';
+            for(var i=0;i<panjang_kriteria;i++){
+                elm += '<td>'+kriteria[i].nama+'</td>';
+                elm2+= '<td>'+kriteria[i].bobot+'</td>';
+            }
+            elm += '<td>Aksi</td></tr>';
+            elm2+= '<td></tr>';
+            $('table#nilai thead').append(elm);
+            $('table#nilai tfoot').append(elm2);
+
+            for(var j=0; j<sampel.length; j++){
+                //var elmDOM = '<tr><td>'+ sampel[j].nama +'</td>';
+                //$('table#nilai tbody').append('<tr><td>'+ sampel[j].nama +'</td>')
+                $.ajax({
+                    method: 'post',
+                    url: 'service.php?page=nilai&action=getSampel',
+                    async: false,
+                    data: {sampel_id:sampel[j].id},
+                    success: function(resp) {
+                        var elmDOM = '<tr><td>'+ sampel[j].nama +'</td>';
+                        var res = JSON.parse(resp);
+                        if(res.length > 0){
+                            for(var i=0; i<res.length; i++){
+                                for(var x=0; x<kriteria.length; x++){
+                                    if(res[i].kriteria_id == kriteria[x].id) {
+                                        elmDOM += '<td>'+res[i].nilai +'</td>'; 
+                                        //console.log(res[i].kriteria_id +' - '+res[i].nilai);
+                                    }
+                                }
+                            }
+                        }       
+                        elmDOM += '<td><button class="btn btn-default edit" data-id="'+ sampel[j].id +'">Ubah</button></td></tr>';
+                        $('table#nilai tbody').append(elmDOM);
+                    }
+                });
+
+            }
+
+        };
+
+    }
+</script>

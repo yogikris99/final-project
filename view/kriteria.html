@@ -1,0 +1,171 @@
+<div class="container-fluid">
+    <div class="row">
+        <h3>Data Kriteria Penilaian</h3>
+    </div>
+    <div class="row">
+        <p><button class="btn btn-primary add">Tambah</button></p>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered table-hover" id="kriteria">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Nama</th>
+                                            <th>Deskripsi</th>
+                                            <th>Tipe</th>
+                                            <th>Bobot</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+        
+    </div>
+</div>
+<div class="modal inmodal fade" id="myModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" action="#" id="frmKriteria">
+                    <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                            <h4 class="modal-title"></h4>
+                    </div>
+                    <div class="modal-body">
+                            <div class="ibox-content">
+                                <table class="table table-responsive table-hovered">
+                                        <tr>
+                                              <td>Nama kriteria</td>
+                                              <td>
+                                                  <input type="hidden" name="id" id="id" class="form-control">
+                                                  <input type="text" name="nama" id="nama" class="form-control">
+                                              </td>
+                                        </tr>
+                                        <tr>
+                                              <td>Deskripsi</td>
+                                              <td>
+                                                  <textarea name="deskripsi" id="deskripsi" class="form-control"></textarea>
+                                              </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Tipe</td>
+                                            <td>
+                                                <select name="tipe" id="tipe" class="form-control">
+                                                    <option value="cost">Cost</option>
+                                                    <option value="benefit">Benefit</option>
+                                                </select>
+                                            </td>
+                                      </tr>
+                                        <tr>
+                                              <td>Bobot</td>
+                                              <td>
+                                                  <input type="number" name="bobot" id="bobot" class="form-control">
+                                              </td>
+                                        </tr>
+                                </table>
+                        
+                            </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary save">Simpan</button> 
+                        <a href="#" class="btn btn-default" data-dismiss="modal">Batal</a>
+                    </div>
+                </form>
+            </div>
+    </div>
+</div>
+<script>
+    $(function(){
+        initData();        
+
+        console.log('total ',checkBobot());
+
+        $('button.add').click(function(){
+            var bobot = checkBobot();
+            if(bobot < 100) {
+                $('#myModal .modal-title').text('Tambah Kriteria');
+                $('#id').val('');
+                $('#nama').val('');
+                $('#deskripsi').val('');
+                $('#bobot').val('');
+                $('#myModal').modal('show');     
+            } else {
+                alert("Total bobot tidak boleh melebihi 100!")
+            }
+        });
+        
+        $('button.save').click(function(){
+            var param = $('form#frmKriteria').serialize();
+            $.ajax({
+               type:'POST',
+               url:'service.php?page=kriteria&action=save',
+               data:param,
+               success:function(resp){
+                   alert(resp);
+                   initData();
+                   $('#myModal').modal('hide');
+               },
+               error:function(error){
+                console.log(error);
+                   alert('Koneksi gagal,');
+               }
+            });
+        });
+        $('#page-wrapper').off('click','button.edit');
+        $('#page-wrapper').on('click','button.edit',function(){
+           var id = $(this).data("id");
+           $.post('service.php?page=kriteria&action=getData',{id:id},function(resp){
+               var respon = JSON.parse(resp);
+               $('#id').val(respon.id);
+               $('#nama').val(respon.nama);
+               $('#deskripsi').val(respon.deskripsi);
+               $('#tipe').val(respon.tipe);
+               $('#bobot').val(respon.bobot);
+               $('#myModal .modal-title').text('Ubah Kriteria')
+               $('#myModal').modal('show');
+           });
+        });
+        $('#page-wrapper').off('click','button.delete');
+        $('#page-wrapper').on('click','button.delete',function(){
+            var c = confirm('Anda Ingin Menghapus Data ini?');
+            var id = $(this).data('id');
+            if(c){
+                $.post('service.php?page=kriteria&action=delete',{id:id},function(resp){
+                   alert(resp); 
+                   initData();
+                   $('#myModal').modal('hide');
+                });
+            }
+        });
+        
+    });
+
+    function checkBobot() {
+        var total = '';
+        $.ajax({
+            method: 'get',
+            url: 'service.php?page=kriteria&action=getTotalBobot',
+            dataType: 'json',
+            async: false,
+            success: function(resp) {
+                total = resp.bobot;
+            }
+        });
+        /*$.getJSON('service.php',{page:'kriteri',action:'getTotalBobot'},function(resp){
+            total = resp.total;
+        });*/
+        return total;
+    };
+    
+    function initData(){
+        $('table#kriteria tbody tr').each(function(){$(this).remove()});
+        $.getJSON('service.php',{page:'kriteria',action:'getData'},function(resp){
+            if(resp.length > 0){
+                for(var i=0;i<resp.length;i++){
+                    var nilai = resp[i].tipe === 'cost' ? 'Cost' : 'Benefit';
+                    $('table#kriteria tbody').append('<tr><td>'+(i+1)+'</td><td>'+resp[i].nama+'</td><td>'+resp[i].deskripsi+'</td><td>'+nilai+'</td><td>'+resp[i].bobot+'</td><td><button class="btn btn-default edit" data-id="'+resp[i].id+'">Ubah</button>&nbsp;<button class="btn btn-danger delete" data-id="'+resp[i].id+'">Hapus</button></td></tr>');
+                }
+            }
+        });        
+    };
+</script>

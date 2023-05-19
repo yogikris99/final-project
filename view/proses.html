@@ -1,0 +1,231 @@
+<div class="container-fluid">
+    <div id="dialog" class="row">
+        <div class="panel panel-success">
+            <div class="panel-heading">
+                Rekomendasi Kost
+            </div>
+            <div class="panel-body">
+                <div class="text-center">
+                Silahkan klik tombol Proses untuk memulai.</div>
+            </div>
+            <div class="panel-footer">
+                <span class="text-right">
+                    <button class="btn btn-sm btn-default process">Proses</button></span>
+            </div>
+        </div>        
+    </div>
+    <div class="row" style="display: none" id="inisiasi">
+        <div class="col-sm-12">
+        <div class="panel panel-primary">
+                        <div class="panel-heading">
+                            Inisiasi Data
+                        </div>
+                        <div class="panel-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered table-hover" id="kriteria">
+                                    <thead></thead>
+                                    <tbody></tbody>
+                                    <tfoot></tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>        
+        </div>
+    </div>
+    <div class="row" style="display: none" id="normalisasi">
+        <div class="col-sm-12">
+        <div class="panel panel-primary">
+                        <div class="panel-heading">
+                            Normalisasi Matriks
+                        </div>
+                        <div class="panel-body">
+                            <table id="normalisasi" class="table borderless">
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>        
+        </div>
+    </div>
+    <div class="row" style="display: none" id="normalisasibobot">
+        <div class="col-sm-12">
+        <div class="panel panel-primary">
+                        <div class="panel-heading">
+                            Normalisasi Matriks x Bobot
+                        </div>
+                        <div class="panel-body">
+                            <table id="normalisasibobot" class="table borderless">
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>        
+        </div>
+    </div>
+    <div class="row" style="display: none" id="perangkingan">
+        <div class="col-sm-12">
+        <div class="panel panel-primary">
+                        <div class="panel-heading">
+                            Perangkingan
+                        </div>
+                        <div class="panel-body">
+                            <table id="perangkingan" class="table table-hover table-striped">
+                                <thead>
+                                    <tr>
+                                        <td>#</td>
+                                        <td>Nama</td>
+                                        <td>Point</td>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>        
+        </div>
+    </div>
+</div>
+
+<script>
+
+    function updateMatrik(kriteria_id, sampel_id, matriks, persentasi) {
+        $.ajax({
+            method: 'post',
+            url: 'service.php?page=nilai&action=updateMatrik',
+            async: false,
+            dataType: 'json',
+            data: {kriteria_id, sampel_id, matrik: matriks, persentasi},
+            success: function(resp) {
+                console.log('success');
+            }
+        });
+    };
+
+    function updateRanking(id, ranking) {
+        $.ajax({
+            method: 'post',
+            url: 'service.php?page=sampel&action=updateRanking',
+            async: false,
+            dataType: 'json',
+            data: {id: id, ranking: ranking},
+            success: function(resp) {
+                console.log('success');
+            }
+        });
+    };
+
+    $(function(){
+        var kriteria = false;
+        var sampel = false;
+
+        $.ajax({
+            url: 'service.php',
+            dataType: 'json',
+            async: false,
+            data: {page:'kriteria',action:'getData'},
+            success: function(resp) {
+                kriteria = resp;
+            }
+        });
+
+        $.ajax({
+            url: 'service.php',
+            dataType: 'json',
+            async: false,
+            data: {page:'sampel',action:'getData'},
+            success: function(resp) {
+                sampel = resp;
+            }
+        });
+
+        $('button.process').on('click',function(e){
+           $(e.target).prop('disabled',true);
+           $('#dialog').hide(1000);
+           var spinner = new Spinner();
+           spinner.spin(document.getElementById('page-wrapper'));
+           if(kriteria && sampel) {
+                $('table#kriteria thead').html('');
+                $('table#kriteria tbody').html('');
+                $('table#kriteria tfoot').html('');
+
+                var panjang_kriteria = kriteria.length;
+                var elm = '<tr><td>Nama</td>';
+                var elm2= '<tr><td>Bobot</td>';
+                for(var i=0;i<panjang_kriteria;i++){
+                    elm += '<td>'+kriteria[i].nama+'</td>';
+                    elm2+= '<td>'+kriteria[i].bobot+'</td>';
+                }
+                $('table#kriteria thead').append(elm);
+                $('table#kriteria tfoot').append(elm2);
+
+                for(var j=0; j<sampel.length; j++){
+                    var ranking = 0 ;
+                    $.ajax({
+                        method: 'post',
+                        url: 'service.php?page=nilai&action=getSampel',
+                        async: false,
+                        data: {sampel_id:sampel[j].id},
+                        success: function(resp) {
+                            var elmDOM = '<tr><td>'+ sampel[j].nama +'</td>';
+                            var matrikDOM = '<tr>';
+                            var matrikBobotDOM = '<tr>';
+                            var res = JSON.parse(resp);
+                            var sum = res.reduce(function (s, a) {
+                                return s + parseInt(a.bobot);
+                            }, 0);
+                            if(res.length > 0){
+                                for(var i=0; i<res.length; i++){
+                                    for(var x=0; x<kriteria.length; x++){
+                                        if(res[i].kriteria_id == kriteria[x].id) {
+                                            elmDOM += '<td>'+ res[i].nilai +'</td>';
+                                            $.ajax({
+                                                method: 'post',
+                                                url: 'service.php?page=nilai&action=getNilaiTotalByKategori',
+                                                async: false,
+                                                dataType: 'json',
+                                                data: {kriteria_id: res[i].kriteria_id},
+                                                success: function(resp) {
+                                                    var matriks = 0;
+                                                    if (resp.tipe == 'cost') {
+                                                        matriks = resp.nilai_min/res[i].nilai;
+                                                    } else {
+                                                        matriks = res[i].nilai/resp.nilai_max;
+                                                    }
+
+                                                    var persentasi = matriks*(res[i].bobot/sum);
+                                                    ranking += persentasi;
+                                                    matrikDOM += '<td>'+ matriks.toFixed(2) +'</td>';
+                                                    matrikBobotDOM += '<td>'+ persentasi.toFixed(2) +'</td>';
+                                                    updateMatrik(res[i].kriteria_id, sampel[j].id, matriks, persentasi);
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                            console.log("ranking lama : ", ranking);
+                            //updateRanking(sampel[j].id, ranking); 
+                            updateRanking(sampel[j].id, ranking); 
+                            elmDOM += '</tr>';
+                            matrikDOM += '</tr>';
+                            $('table#kriteria tbody').append(elmDOM);
+                            $('table#normalisasi tbody').append(matrikDOM);
+                            $('table#normalisasibobot tbody').append(matrikBobotDOM);
+                            $('#inisiasi').show(1000);
+                            $('#normalisasi').show(1000);
+                            $('#normalisasibobot').show(1000);
+                        }
+                    });
+                }
+            }
+
+            $.getJSON('service.php',{page:'sampel',action:'getRanking'},function(resp){
+                for(i=0;i<resp.length;i++){
+                    $('table#perangkingan tbody').append('<tr><td>'+(i+1)+'</td><td>'+resp[i].nama+'</td><td>'+resp[i].ranking+'</td></tr>');                                       
+                    $('#perangkingan').show(1000);
+                }
+                spinner.stop();
+            });
+
+        });
+    })
+</script>

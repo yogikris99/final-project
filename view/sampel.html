@@ -1,0 +1,133 @@
+<div class="container-fluid">
+    <div class="row">
+        <h3>Data Kost</h3>
+    </div>
+    <div class="row">
+        <p><button class="btn btn-primary add">Tambah</button></p>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered table-hover" id="sampel">
+                                    <thead>
+                                        <tr>
+                                            <th>Nomor ID</th>
+                                            <th>Nama</th>
+                                            <th>Fasilitas</th>
+                                            <th>Alamat</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+        
+    </div>
+</div>
+<div class="modal inmodal fade" id="myModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                    <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                            <h4 class="modal-title"></h4>
+                    </div>
+                    <div class="modal-body">
+                            <div class="ibox-content">
+                                <form method="post" action="#" id="frmSampel">
+                                <table class="table table-responsive table-hovered">
+                                        <tr>
+                                                <td>Nomor ID</td>
+                                                <td><input type="text" name="id" id="id" class="form-control"></td>
+                                        </tr>
+                                        <tr>
+                                                <td>Nama</td>
+                                                <td><input type="text" name="nama" id="nama" class="form-control"></td>
+                                        </tr>
+
+                                        <tr>
+                                                <td>Fasilitas</td>
+                                                <td><input type="text" name="fasilitas" id="fasilitas" class="form-control"></td>
+                                        </tr>
+                                        <tr>
+                                                <td>Alamat</td>
+                                                <td><input type="text" name="alamat" id="alamat" class="form-control"></td>
+                                        </tr>
+                                </table>
+                        </form>
+                            </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary save">Simpan</button>
+                        <a href="#" class="btn btn-default" data-dismiss="modal">Batal</a>
+                    </div>
+            </div>
+    </div>
+</div>
+<script>
+    $(function(){
+        initData();
+        $('button.add').click(function(){
+           $('#myModal .modal-title').text('Tambah Sampel');
+               $('#id').val('');
+               $('#id').prop('readonly',false);
+               $('#nama').val('');
+               $('#fasilitas').val('');
+               $('#alamat').val('');
+           $('#myModal').modal('show'); 
+        });
+        
+        $('button.save').click(function(){
+            var param = $('form#frmSampel').serialize();
+            $.ajax({
+               type:'POST',
+               url:'service.php?page=sampel&action=save',
+               data:param,
+               success:function(resp){
+                   alert(resp);
+                   initData();
+                   $('#myModal').modal('hide');
+               },
+               error:function(error){
+                console.log(error);
+                   alert('Koneksi gagal,');
+               }
+            });
+        });
+        $('#page-wrapper').off('click','button.edit');
+        $('#page-wrapper').on('click','button.edit',function(){
+           var id = $(this).data("id");
+           $.post('service.php?page=sampel&action=getData',{id:id},function(resp){
+               var respon = JSON.parse(resp);
+               $('#id').val(respon.id);
+               $('#id').prop('readonly',true);
+               $('#nama').val(respon.nama);
+               $('#fasilitas').val(respon.fasilitas);
+               $('#alamat').val(respon.alamat);
+               $('#myModal .modal-title').text('Ubah Sampel')
+               $('#myModal').modal('show');
+           });
+        });
+        $('#page-wrapper').off('click','button.delete');
+        $('#page-wrapper').on('click','button.delete',function(){
+            var c = confirm('Anda Ingin Menghapus Data ini?');
+            var id = $(this).data('id');
+            if(c){
+                $.post('service.php?page=sampel&action=delete',{id:id},function(resp){
+                   alert(resp); 
+                   initData();
+                   $('#myModal').modal('hide');
+                });
+            }
+        });
+        
+    });
+    
+    function initData(){
+        $('table#sampel tbody tr').each(function(){$(this).remove()});
+       $.getJSON('service.php',{page:'sampel',action:'getData'},function(resp){
+           if(resp.length > 0){
+               for(var i=0;i<resp.length;i++){
+                   $('table#sampel tbody').append('<tr><td>'+resp[i].id+'</td><td>'+resp[i].nama+'</td><td>'+resp[i].fasilitas+"</td><td>"+resp[i].alamat+'</td><td><button class="btn btn-default edit" data-id="'+resp[i].id+'">Ubah</button>&nbsp;<button class="btn btn-danger delete" data-id="'+resp[i].id+'">Hapus</button></td></tr>');
+               }
+           }
+       });        
+    }
+</script>
